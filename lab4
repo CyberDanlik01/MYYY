@@ -1,0 +1,178 @@
+CREATE DATABASE lab4;
+GO
+USE lab4;
+GO
+
+CREATE TABLE faculty (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    faculty_name NVARCHAR(200) NOT NULL
+);
+
+CREATE TABLE form (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    form_name NVARCHAR(200) NOT NULL
+);
+
+CREATE TABLE hours (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    course INT NOT NULL,
+    faculty_id INT NOT NULL,
+    form_id INT NOT NULL,
+    all_h INT,
+    inclass_h INT,
+    CONSTRAINT hours_faculty FOREIGN KEY (faculty_id) REFERENCES faculty(id),
+    CONSTRAINT hours_form FOREIGN KEY (form_id) REFERENCES form(id)
+);
+
+CREATE TABLE stud (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    last_name NVARCHAR(200) NOT NULL,
+    f_name NVARCHAR(200) NOT NULL,
+    s_name NVARCHAR(200),
+    br_date DATE,
+    in_date DATE,
+    exm FLOAT
+);
+
+CREATE TABLE process (
+    stud_id INT NOT NULL,
+    hours_id INT NOT NULL,
+    CONSTRAINT stud_hours PRIMARY KEY (stud_id, hours_id),
+    CONSTRAINT process_stud FOREIGN KEY (stud_id) REFERENCES stud(id),
+    CONSTRAINT process_hours FOREIGN KEY (hours_id) REFERENCES hours(id)
+);
+
+
+INSERT INTO faculty (faculty_name) VALUES
+('Экономическая безопасность'),
+('Автоматизированные системы обработки информации'),
+('Маркетинг');
+
+INSERT INTO form (form_name) VALUES
+('очная'),
+('заочная');
+
+INSERT INTO hours (course, faculty_id, form_id, all_h, inclass_h) VALUES
+(1, 1, 1, 430, 380),
+(1, 1, 2, 300, 250),
+(2, 2, 1, 320, 205),
+(2, 2, 1, 295, 190),
+(3, 3, 1, 550, 340),
+(3, 3, 2, 310, 300),
+(4, 1, 1, 690, 340),
+(4, 2, 1, 330, 240),
+(3, 3, 2, 370, 235),
+(1, 1, 2, 690, 540);
+
+INSERT INTO stud (last_name, f_name, s_name, br_date, in_date, exm) VALUES
+('Бухтояр', 'Сергей', 'Е', '1980-04-15', '2014-09-01', 5.5),
+('Калинин', 'Максим', 'И', '2000-10-22', '2018-09-01', 8.4),
+('Орлов', 'Константин', NULL, '2002-02-11', '2021-09-01', 7.9),
+('Винников', 'Роман', 'А', '2001-06-27', '2019-09-01', 9.7),
+('Журова', 'Елена', NULL, '1965-12-18', '2015-09-01', 5.8),
+('Степненко', 'Ольга', 'Р', '2002-05-09', '2020-09-01', 4.2),
+('Чижов', 'Дмитрий', NULL, '2000-08-30', '2021-09-01', 8.7),
+('Егоров', 'Виктор', 'К', '1996-04-26', '2015-09-01', 10.0),
+('Рыбкина', 'Алиса', NULL, '2002-07-12', '2020-09-01', 9.3),
+('Измайлов', 'Григорий', 'П', '1999-09-25', '2020-09-01', 7.1);
+
+INSERT INTO process (stud_id, hours_id) VALUES
+(1, 1),
+(2, 2),
+(3, 3),
+(4, 4),
+(5, 5),
+(6, 6),
+(7, 7),
+(8, 8),
+(9, 9),
+(10, 10);
+
+GO
+CREATE PROCEDURE count_stud
+    @faculty_name NVARCHAR(100),
+    @form_name NVARCHAR(100)
+AS BEGIN
+    SELECT COUNT(stud.id) AS stud_count
+    FROM stud
+    JOIN process ON stud.id = process.stud_id
+    JOIN hours ON process.hours_id = hours.id
+    JOIN faculty ON hours.faculty_id = faculty.id
+    JOIN form ON hours.form_id = form.id
+    WHERE faculty.faculty_name = @faculty_name
+      AND form.form_name = @form_name;
+END
+GO
+
+
+GO
+CREATE PROCEDURE count_sub
+    @cnt_asoi INT OUTPUT,
+    @cnt_ab INT OUTPUT,
+    @cnt_total INT OUTPUT,
+    @cnt_same INT OUTPUT
+AS BEGIN
+    SELECT @cnt_asoi = COUNT(*)
+    FROM hours
+    JOIN faculty ON hours.faculty_id = faculty.id
+    WHERE faculty.faculty_name = 'Автоматизированные системы обработки информации';
+
+    SELECT @cnt_ab = COUNT(*)
+    FROM hours
+    JOIN faculty ON hours.faculty_id = faculty.id
+    WHERE faculty.faculty_name = 'Экономическая безопасность';
+
+    SELECT @cnt_total = COUNT(*) FROM hours;
+
+    SELECT @cnt_same = COUNT(*)
+    FROM hours
+    GROUP BY course
+    HAVING COUNT(*) > 1;
+
+    PRINT 'Автоматизированные системы обработки информации: ' + CAST(@cnt_asoi AS NVARCHAR);
+    PRINT 'Экономическая безопасность: ' + CAST(@cnt_ab AS NVARCHAR);
+    PRINT 'Всего: ' + CAST(@cnt_total AS NVARCHAR);
+    PRINT 'Одинаковых курсов: ' + CAST(@cnt_same AS NVARCHAR);
+END
+GO
+
+
+GO
+CREATE PROCEDURE add_stud
+    @last NVARCHAR(200),
+    @first NVARCHAR(200),
+    @sname NVARCHAR(200) = NULL,
+    @br DATE,
+    @in_d DATE,
+    @faculty_name NVARCHAR(200),
+    @form_name NVARCHAR(200)
+AS BEGIN
+    DECLARE @hours_id INT;
+
+    SELECT @hours_id = hours.id
+    FROM hours
+    JOIN faculty ON hours.faculty_id = faculty.id
+    JOIN form ON hours.form_id = form.id
+    WHERE faculty.faculty_name = @faculty_name
+      AND form.form_name = @form_name
+      AND hours.course = 1;
+
+    INSERT INTO stud (last_name, f_name, s_name, br_date, in_date, exm)
+    VALUES (@last, @first, @sname, @br, @in_d, 0);
+
+    DECLARE @new_id INT;
+    SELECT @new_id = MAX(id) FROM stud;
+
+    INSERT INTO process (stud_id, hours_id)
+    VALUES (@new_id, @hours_id);
+
+    PRINT 'Студент добавлен';
+END
+
+EXEC count_stud 'Экономическая безопасность', 'очная';
+
+DECLARE @a INT, @b INT, @c INT, @d INT;
+EXEC count_sub @a OUTPUT, @b OUTPUT, @c OUTPUT, @d OUTPUT;
+
+EXEC add_stud 
+    'Гаус', 'Карл', NULL,'2001-08-13', '2020-11-06', 'Автоматизированные системы обработки информации', 'очная';
