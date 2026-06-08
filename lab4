@@ -1,7 +1,6 @@
 CREATE DATABASE lab4;
-GO
+
 USE lab4;
-GO
 
 CREATE TABLE faculty (
     id INT PRIMARY KEY IDENTITY(1,1),
