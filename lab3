@@ -139,7 +139,7 @@ JOIN hours ON process.hours_id = hours.id
 JOIN faculty ON hours.faculty_id = faculty.id
 WHERE YEAR(stud.in_date) = 2015
 GROUP BY faculty.faculty_name
-ORDER BY enrolled_2015 DESC;
+ORDER BY zach_2015 DESC;
 
 
 SELECT faculty.faculty_name, form.form_name, COUNT(stud.id) AS zach_2014
