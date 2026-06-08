@@ -1,5 +1,4 @@
 CREATE DATABASE lab4;
-
 USE lab4;
 
 CREATE TABLE faculty (
